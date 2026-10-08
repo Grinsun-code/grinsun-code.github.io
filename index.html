@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shaleadnotes</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --primary-color: #bb86fc;
+            --reminder-accent: #03dac6;
+            --text-color: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --danger-color: #cf6679;
+            --border-color: #2c2c2c;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 16px; padding-bottom: 140px; max-width: 600px; margin: 0 auto; position: relative; min-height: 100vh; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .header-right { display: flex; align-items: center; gap: 8px; }
+        h1 { font-size: 1.4rem; color: var(--primary-color); letter-spacing: 0.5px; }
+
+        .icon-btn { background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 1rem; }
+        .icon-btn:hover { border-color: var(--primary-color); }
+
+        /* Floating Action Buttons (Base Positioning) */
+        .fab-btn {
+            position: fixed;
+            z-index: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .fab-btn:active { transform: scale(0.92); }
+
+        /* Right-Handed Layout: History matched to user's circle spot & enlarged, Plus/Search shifted much higher up */
+        body.mode-right .fab-history { bottom: 275px; left: 32px; width: 54px; height: 54px; background: var(--surface-color); border: 2px solid var(--border-color); color: var(--text-color); border-radius: 50%; font-size: 1.4rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        body.mode-right .fab-history:hover { border-color: var(--primary-color); }
+        body.mode-right .fab-plus { bottom: 275px; right: 20px; width: 56px; height: 56px; background: var(--primary-color); color: #000; border: none; border-radius: 50%; font-size: 1.8rem; font-weight: bold; box-shadow: 0 4px 12px rgba(187, 134, 252, 0.4); }
+        body.mode-right .fab-search { bottom: 205px; right: 20px; width: 48px; height: 48px; background: var(--surface-color); border: 2px solid var(--primary-color); color: var(--primary-color); border-radius: 50%; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+
+        /* Left-Handed Layout (Mirrored): History matched to target spot & enlarged, Plus/Search shifted higher up */
+        body.mode-left .fab-history { bottom: 275px; right: 32px; width: 54px; height: 54px; background: var(--surface-color); border: 2px solid var(--border-color); color: var(--text-color); border-radius: 50%; font-size: 1.4rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        body.mode-left .fab-history:hover { border-color: var(--primary-color); }
+        body.mode-left .fab-plus { bottom: 275px; left: 20px; width: 56px; height: 56px; background: var(--primary-color); color: #000; border: none; border-radius: 50%; font-size: 1.8rem; font-weight: bold; box-shadow: 0 4px 12px rgba(187, 134, 252, 0.4); }
+        body.mode-left .fab-search { bottom: 205px; left: 20px; width: 48px; height: 48px; background: var(--surface-color); border: 2px solid var(--primary-color); color: var(--primary-color); border-radius: 50%; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        
+        input, textarea, select { width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-color); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 1rem; }
+        input:focus, textarea:focus { border-color: var(--primary-color); outline: none; }
+        
+        #activeSearchBanner { display: none; background: #221b2d; border: 1px solid var(--primary-color); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; justify-content: space-between; align-items: center; }
+
+        .section-heading { font-size: 1rem; color: var(--text-secondary); margin: 16px 0 8px 0; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .note-card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px; margin-bottom: 12px; position: relative; cursor: pointer; }
+        .note-card.general-type { border-left: 4px solid var(--primary-color); }
+        .note-card.reminder-type { border-left: 4px solid var(--reminder-accent); background: #182222; }
+        .note-card.pinned { box-shadow: 0 0 0 1px var(--primary-color); }
+
+        .note-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .note-title { font-weight: bold; font-size: 1.1rem; color: var(--text-color); }
+        .note-text { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        .note-footer { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 8px; }
+        .note-actions { display: flex; gap: 8px; align-items: center; }
+        .note-actions button { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; padding: 4px; }
+        .note-actions button:hover { color: var(--primary-color); }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; padding: 20px; align-items: center; justify-content: center; }
+        .modal-content { background: var(--surface-color); width: 100%; max-width: 500px; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); text-align: left; max-height: 90vh; overflow-y: auto; }
+        
+        .btn { background: var(--primary-color); color: #000; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; }
+
+        #alarm-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a0000; z-index: 2000; flex-direction: column; justify-content: center; align-items: center; padding: 24px; text-align: center; }
+        #alarm-overlay h2 { color: var(--danger-color); font-size: 2rem; margin-bottom: 10px; }
+        #alarm-overlay p { font-size: 1.2rem; margin-bottom: 20px; color: #fff; }
+        .alarm-btns { display: flex; gap: 12px; width: 100%; max-width: 300px; flex-direction: column; }
+    </style>
+</head>
+<body class="mode-right">
+
+    <header>
+        <div class="header-left">
+            <h1>Shaleadnotes</h1>
+        </div>
+        <div class="header-right">
+            <button class="icon-btn" onclick="openSettingsModal()" title="Settings & Hand Mode">⚙️</button>
+        </div>
+    </header>
+
+    <div id="activeSearchBanner">
+        <span id="activeSearchText" style="font-size: 0.9rem; color: var(--primary-color);"></span>
+        <button onclick="clearSearch()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 0.85rem; font-weight: bold;">✕ Clear Search</button>
+    </div>
+
+    <div id="reminderSectionContainer"></div>
+    <div id="generalSectionContainer"></div>
+
+    <!-- Floating Action Buttons -->
+    <button class="fab-btn fab-history" onclick="openVersionModal()" title="Version Control & History">📋</button>
+    <button class="fab-btn fab-plus" onclick="openModal()" title="New Note">+</button>
+    <button class="fab-btn fab-search" onclick="openSearchModal()" title="Search Notes">🔍</button>
+
+    <!-- First-Launch / Hand Mode Setup Modal -->
+    <div id="setupModal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <h2 style="margin-bottom: 10px; color: var(--primary-color);">👋 Welcome to Shaleadnotes!</h2>
+            <p style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 20px;">Choose your hand preference for comfortable one-handed navigation:</p>
+            <div style="display: flex; gap: 12px; flex-direction: column;">
+                <button class="btn" style="padding: 14px; font-size: 1rem;" onclick="setHandMode('right')">👉 Right-Handed Mode</button>
+                <button class="btn" style="padding: 14px; font-size: 1rem; background: #333; color: #fff;" onclick="setHandMode('left')">👈 Left-Handed Mode (Mirrored)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 12px; font-size: 1.2rem; color: var(--primary-color);">⚙️ App Settings</h2>
+            <label style="font-size: 0.9rem; color: var(--text-secondary); display: block; margin-bottom: 8px;">Hand Preference (UI Layout):</label>
+            <select id="handModeSelect" onchange="changeHandMode(this.value)">
+                <option value="right">Right-Handed Mode</option>
+                <option value="left">Left-Handed Mode (Mirrored)</option>
+            </select>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn" style="flex: 1; background: #333; color: #fff;" onclick="closeSettingsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Modal -->
+    <div id="searchModal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 12px; font-size: 1.2rem; color: var(--primary-color);">🔍 Search Notes</h2>
+            <input type="text" id="searchInputModal" placeholder="Type keyword to search notes..." oninput="applySearch()">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn" style="flex: 1;" onclick="closeSearchModal()">Done</button>
+                <button class="btn" style="flex: 1; background: #333; color: #fff;" onclick="clearSearch(); closeSearchModal();">Reset Filter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note Creator / Editor Modal -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle" style="margin-bottom: 12px; font-size: 1.2rem;">Create Note</h2>
+            <input type="hidden" id="noteId">
+            <input type="text" id="titleInput" placeholder="Title (optional)">
+            <textarea id="contentInput" rows="5" placeholder="Write your note here..."></textarea>
+            
+            <div style="background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.9rem; font-weight: bold; color: var(--reminder-accent);">⏰ Set as Reminder Note</span>
+                <input type="checkbox" id="reminderToggle" style="width: 20px; height: 20px; cursor: pointer;" onclick="toggleReminderInput()">
+            </div>
+
+            <div id="reminderInputSection" style="display: none; margin-bottom: 12px;">
+                <label style="font-size: 0.85rem; color: var(--reminder-accent); display: block; margin-bottom: 6px;">Reminder Date & Time:</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="date" id="reminderDateInput" style="flex: 1; cursor: pointer; margin-bottom: 0;">
+                    <input type="time" id="reminderTimeInput" style="flex: 1; cursor: pointer; margin-bottom: 0;">
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn" style="flex: 1;" onclick="saveNote()">Save</button>
+                <button class="btn" style="flex: 1; background: #333; color: #fff;" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Note Detail Modal -->
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2 id="viewTitle" style="color: var(--primary-color); font-size: 1.3rem;"></h2>
+                <span id="viewTypeBadge" style="font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; background: #333;"></span>
+            </div>
+            <p id="viewReminder" style="font-size: 0.85rem; color: var(--reminder-accent); margin-bottom: 10px; display: none;"></p>
+            <div id="viewContent" style="font-size: 1rem; color: var(--text-color); white-space: pre-wrap; word-break: break-word; margin-bottom: 20px; line-height: 1.4;"></div>
+            
+            <div style="font-size: 0.75rem; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 10px; margin-bottom: 16px;">
+                <div id="viewCreated"></div>
+                <div id="viewUpdated"></div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" style="flex: 1;" id="editFromViewBtn">✏️ Edit Note</button>
+                <button class="btn" style="flex: 1; background: #333; color: #fff;" onclick="closeViewModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Version Control & History Modal -->
+    <div id="versionModal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 12px; font-size: 1.2rem; color: var(--primary-color);">📋 Version Control & Correction Log</h2>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px;">Select a note to inspect its detailed correction timeline and past revisions.</p>
+            <div id="versionListContainer" style="max-height: 50vh; overflow-y: auto; margin-bottom: 16px;"></div>
+            <button class="btn" style="width: 100%; background: #333; color: #fff;" onclick="closeVersionModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Detailed Note History Timeline Modal -->
+    <div id="noteHistoryDetailModal" class="modal">
+        <div class="modal-content">
+            <h2 id="historyDetailTitle" style="margin-bottom: 8px; font-size: 1.2rem; color: var(--primary-color);"></h2>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px;">Complete correction history and snapshots:</p>
+            <div id="historyTimelineContainer" style="max-height: 50vh; overflow-y: auto; margin-bottom: 16px;"></div>
+            <button class="btn" style="width: 100%; background: #333; color: #fff;" onclick="closeNoteHistoryDetail()">Back to History List</button>
+        </div>
+    </div>
+
+    <!-- Fullscreen Alarm Alert Overlay -->
+    <div id="alarm-overlay">
+        <h2>Reminder Alert!</h2>
+        <p id="alarmTitle" style="font-weight: bold;"></p>
+        <p id="alarmDesc" style="font-size: 0.95rem; color: #ccc; margin-bottom: 30px;"></p>
+        <div class="alarm-btns">
+            <button class="btn" style="background: #4caf50; color: #fff;" onclick="dismissAlarm()">Dismiss</button>
+            <label style="font-size: 0.85rem; color: #aaa; text-align: left;">Snooze Window:</label>
+            <select id="snoozeWindowSelect">
+                <option value="5">5 Minutes</option>
+                <option value="10">10 Minutes</option>
+                <option value="15">15 Minutes</option>
+                <option value="30" selected>30 Minutes</option>
+                <option value="60">1 Hour</option>
+            </select>
+            <button class="btn" style="background: var(--danger-color); color: #fff;" onclick="snoozeAlarm()">Snooze</button>
+        </div>
+    </div>
+
+    <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto" loop></audio>
+
+    <script>
+        let notes = JSON.parse(localStorage.getItem('shalead_notes')) || [];
+        let activeAlarmNoteId = null;
+        let searchQuery = '';
+
+        let currentHandMode = localStorage.getItem('shalead_hand_mode');
+        if (!currentHandMode) {
+            document.getElementById('setupModal').style.display = 'flex';
+        } else {
+            applyHandModeClass(currentHandMode);
+        }
+
+        function setHandMode(mode) {
+            localStorage.setItem('shalead_hand_mode', mode);
+            applyHandModeClass(mode);
+            document.getElementById('setupModal').style.display = 'none';
+        }
+
+        function changeHandMode(mode) {
+            localStorage.setItem('shalead_hand_mode', mode);
+            applyHandModeClass(mode);
+        }
+
+        function applyHandModeClass(mode) {
+            const body = document.body;
+            body.className = mode === 'left' ? 'mode-left' : 'mode-right';
+            const selectElem = document.getElementById('handModeSelect');
+            if (selectElem) selectElem.value = mode;
+        }
+
+        function openSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'flex';
+            const mode = localStorage.getItem('shalead_hand_mode') || 'right';
+            document.getElementById('handModeSelect').value = mode;
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveNotesToStorage() {
+            localStorage.setItem('shalead_notes', JSON.stringify(notes));
+        }
+
+        function toggleReminderInput() {
+            const isChecked = document.getElementById('reminderToggle').checked;
+            const section = document.getElementById('reminderInputSection');
+            section.style.display = isChecked ? 'block' : 'none';
+
+            if (isChecked && !document.getElementById('reminderDateInput').value) {
+                const now = new Date();
+                document.getElementById('reminderDateInput').value = now.toISOString().slice(0, 10);
+                document.getElementById('reminderTimeInput').value = now.toTimeString().slice(0, 5);
+            }
+        }
+
+        function openSearchModal() {
+            document.getElementById('searchModal').style.display = 'flex';
+            document.getElementById('searchInputModal').value = searchQuery;
+            document.getElementById('searchInputModal').focus();
+        }
+
+        function closeSearchModal() {
+            document.getElementById('searchModal').style.display = 'none';
+        }
+
+        function applySearch() {
+            searchQuery = document.getElementById('searchInputModal').value.toLowerCase().trim();
+            renderNotes();
+        }
+
+        function clearSearch() {
+            searchQuery = '';
+            document.getElementById('searchInputModal').value = '';
+            renderNotes();
+        }
+
+        function openModal(id = null) {
+            closeViewModal();
+            document.getElementById('noteModal').style.display = 'flex';
+            const reminderSection = document.getElementById('reminderInputSection');
+            const reminderToggle = document.getElementById('reminderToggle');
+
+            if (id) {
+                const note = notes.find(n => n.id === id);
+                document.getElementById('modalTitle').innerText = 'Edit Note';
+                document.getElementById('noteId').value = note.id;
+                document.getElementById('titleInput').value = note.title;
+                document.getElementById('contentInput').value = note.content;
+                
+                if (note.reminder) {
+                    reminderToggle.checked = true;
+                    reminderSection.style.display = 'block';
+                    const parts = note.reminder.split('T');
+                    document.getElementById('reminderDateInput').value = parts[0] || '';
+                    document.getElementById('reminderTimeInput').value = parts[1] || '';
+                } else {
+                    reminderToggle.checked = false;
+                    reminderSection.style.display = 'none';
+                    document.getElementById('reminderDateInput').value = '';
+                    document.getElementById('reminderTimeInput').value = '';
+                }
+            } else {
+                document.getElementById('modalTitle').innerText = 'Create Note';
+                document.getElementById('noteId').value = '';
+                document.getElementById('titleInput').value = '';
+                document.getElementById('contentInput').value = '';
+                reminderToggle.checked = false;
+                reminderSection.style.display = 'none';
+                document.getElementById('reminderDateInput').value = '';
+                document.getElementById('reminderTimeInput').value = '';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('noteModal').style.display = 'none';
+        }
+
+        function openViewModal(id) {
+            const note = notes.find(n => n.id === id);
+            if (!note) return;
+
+            document.getElementById('viewTitle').innerText = note.title || 'Untitled Note';
+            document.getElementById('viewContent').innerText = note.content;
+            
+            const badge = document.getElementById('viewTypeBadge');
+            if (note.reminder) {
+                badge.innerText = '⏰ Reminder Note';
+                badge.style.background = '#024d45';
+                badge.style.color = '#03dac6';
+            } else {
+                badge.innerText = '📝 General Note';
+                badge.style.background = '#322247';
+                badge.style.color = '#bb86fc';
+            }
+            
+            const reminderElem = document.getElementById('viewReminder');
+            if (note.reminder) {
+                reminderElem.style.display = 'block';
+                reminderElem.innerText = `Scheduled Reminder: ${new Date(note.reminder).toLocaleString()}`;
+            } else {
+                reminderElem.style.display = 'none';
+            }
+
+            document.getElementById('viewCreated').innerText = `Created: ${note.createdAt || 'N/A'}`;
+            document.getElementById('viewUpdated').innerText = `Last Updated: ${note.updatedAt || note.createdAt || 'N/A'}`;
+            
+            document.getElementById('editFromViewBtn').onclick = () => {
+                closeViewModal();
+                openModal(note.id);
+            };
+
+            document.getElementById('viewModal').style.display = 'flex';
+        }
+
+        function closeViewModal() {
+            document.getElementById('viewModal').style.display = 'none';
+        }
+
+        function openVersionModal() {
+            const container = document.getElementById('versionListContainer');
+            container.innerHTML = '';
+
+            if (notes.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No notes history available.</p>';
+            } else {
+                notes.forEach(note => {
+                    const item = document.createElement('div');
+                    item.style.cssText = "background: #121212; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 8px; cursor: pointer;";
+                    item.onclick = () => openNoteHistoryDetail(note.id);
+                    
+                    const versionCount = note.history ? note.history.length : 1;
+                    const typeIcon = note.reminder ? '⏰' : '📝';
+                    item.innerHTML = `
+                        <div style="font-weight: bold; color: var(--primary-color); margin-bottom: 4px;">${typeIcon} ${escapeHtml(note.title || 'Untitled Note')} (${note.reminder ? 'Reminder' : 'General'})</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Total Revisions / Corrections: ${versionCount}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">Last Modified: ${note.updatedAt || note.createdAt || 'N/A'}</div>
+                    `;
+                    container.appendChild(item);
+                });
+            }
+            document.getElementById('versionModal').style.display = 'flex';
+        }
+
+        function closeVersionModal() {
+            document.getElementById('versionModal').style.display = 'none';
+        }
+
+        function openNoteHistoryDetail(id) {
+            closeVersionModal();
+            const note = notes.find(n => n.id === id);
+            if (!note) return;
+
+            document.getElementById('historyDetailTitle').innerText = `History: ${note.title || 'Untitled Note'}`;
+            const container = document.getElementById('historyTimelineContainer');
+            container.innerHTML = '';
+
+            const historyList = note.history || [{ timestamp: note.createdAt, title: note.title, content: note.content }];
+
+            historyList.forEach((rev, index) => {
+                const card = document.createElement('div');
+                card.style.cssText = "background: #121212; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 10px;";
+                card.innerHTML = `
+                    <div style="font-size: 0.8rem; font-weight: bold; color: var(--reminder-accent); margin-bottom: 4px;">Revision #${index + 1} — ${rev.timestamp}</div>
+                    <div style="font-size: 0.9rem; font-weight: bold; color: var(--text-color); margin-bottom: 4px;">Title: ${escapeHtml(rev.title || 'Untitled Note')}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); white-space: pre-wrap; word-break: break-word; background: #181818; padding: 8px; border-radius: 6px;">${escapeHtml(rev.content)}</div>
+                `;
+                container.appendChild(card);
+            });
+
+            document.getElementById('noteHistoryDetailModal').style.display = 'flex';
+        }
+
+        function closeNoteHistoryDetail() {
+            document.getElementById('noteHistoryDetailModal').style.display = 'none';
+            openVersionModal();
+        }
+
+        function saveNote() {
+            const id = document.getElementById('noteId').value;
+            const title = document.getElementById('titleInput').value.trim();
+            const content = document.getElementById('contentInput').value.trim();
+            const isReminderChecked = document.getElementById('reminderToggle').checked;
+            
+            let reminder = '';
+            if (isReminderChecked) {
+                const dVal = document.getElementById('reminderDateInput').value;
+                const tVal = document.getElementById('reminderTimeInput').value;
+                if (dVal && tVal) {
+                    reminder = `${dVal}T${tVal}`;
+                }
+            }
+
+            const currentTime = new Date().toLocaleString();
+
+            if (!title && !content) {
+                alert('Note cannot be empty.');
+                return;
+            }
+
+            if (isReminderChecked && !reminder) {
+                alert('Please select both reminder date and time.');
+                return;
+            }
+
+            if (id) {
+                const note = notes.find(n => n.id == id);
+                note.title = title;
+                note.content = content;
+                note.reminder = reminder;
+                note.updatedAt = currentTime;
+
+                if (!note.history) note.history = [];
+                note.history.push({
+                    timestamp: currentTime,
+                    title: title || 'Untitled Note',
+                    content: content
+                });
+            } else {
+                const newNote = {
+                    id: Date.now(),
+                    title: title || 'Untitled Note',
+                    content: content,
+                    reminder: reminder,
+                    pinned: false,
+                    createdAt: currentTime,
+                    updatedAt: currentTime,
+                    history: [{
+                        timestamp: currentTime,
+                        title: title || 'Untitled Note',
+                        content: content
+                    }]
+                };
+                notes.unshift(newNote);
+            }
+
+            saveNotesToStorage();
+            closeModal();
+            renderNotes();
+        }
+
+        function deleteNote(id, event) {
+            event.stopPropagation();
+            if (confirm('Delete this note?')) {
+                notes = notes.filter(n => n.id !== id);
+                saveNotesToStorage();
+                renderNotes();
+            }
+        }
+
+        function togglePin(id, event) {
+            event.stopPropagation();
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                note.pinned = !note.pinned;
+                notes.sort((a, b) => b.pinned - a.pinned);
+                saveNotesToStorage();
+                renderNotes();
+            }
+        }
+
+        function renderNotes() {
+            const reminderContainer = document.getElementById('reminderSectionContainer');
+            const generalContainer = document.getElementById('generalSectionContainer');
+            const searchBanner = document.getElementById('activeSearchBanner');
+            const activeSearchText = document.getElementById('activeSearchText');
+            
+            reminderContainer.innerHTML = '';
+            generalContainer.innerHTML = '';
+
+            if (searchQuery) {
+                searchBanner.style.display = 'flex';
+                activeSearchText.innerText = `Filtering by: "${searchQuery}"`;
+            } else {
+                searchBanner.style.display = 'none';
+            }
+
+            const filtered = notes.filter(n => 
+                n.title.toLowerCase().includes(searchQuery) || n.content.toLowerCase().includes(searchQuery)
+            );
+
+            if (filtered.length === 0) {
+                generalContainer.innerHTML = '<p style="text-align: center; color: var(--text-secondary); margin-top: 40px;">No notes found.</p>';
+                return;
+            }
+
+            const reminderNotes = filtered.filter(n => n.reminder);
+            const generalNotes = filtered.filter(n => !n.reminder);
+
+            if (reminderNotes.length > 0) {
+                const heading = document.createElement('div');
+                heading.className = 'section-heading';
+                heading.innerHTML = '⏰ Reminder Notes';
+                reminderContainer.appendChild(heading);
+
+                reminderNotes.forEach(note => {
+                    reminderContainer.appendChild(createNoteCardElement(note));
+                });
+            }
+
+            if (generalNotes.length > 0) {
+                const heading = document.createElement('div');
+                heading.className = 'section-heading';
+                heading.innerHTML = '📝 General Notes';
+                generalContainer.appendChild(heading);
+
+                generalNotes.forEach(note => {
+                    generalContainer.appendChild(createNoteCardElement(note));
+                });
+            }
+        }
+
+        function createNoteCardElement(note) {
+            const card = document.createElement('div');
+            const typeClass = note.reminder ? 'reminder-type' : 'general-type';
+            card.className = `note-card ${typeClass} ${note.pinned ? 'pinned' : ''}`;
+            
+            card.onclick = () => openViewModal(note.id);
+            
+            const wordCount = note.content.trim() ? note.content.trim().split(/\s+/).length : 0;
+            const charCount = note.content.length;
+            const typeIcon = note.reminder ? '⏰' : '📝';
+            const reminderSnippet = note.reminder ? ` | ⏰ ${new Date(note.reminder).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : '';
+
+            card.innerHTML = `
+                <div class="note-header-row">
+                    <div class="note-title">${typeIcon} ${escapeHtml(note.title || 'Untitled Note')}</div>
+                </div>
+                <div class="note-text">${escapeHtml(note.content)}</div>
+                <div class="note-footer">
+                    <span>Words: ${wordCount} | Chars: ${charCount}${reminderSnippet}</span>
+                    <div class="note-actions">
+                        <button onclick="togglePin(${note.id}, event)">${note.pinned ? '📌 Unpin' : '📍 Pin'}</button>
+                        <button onclick="openModal(${note.id}); event.stopPropagation();" title="Edit">✏️</button>
+                        <button onclick="deleteNote(${note.id}, event)" title="Delete">🗑️</button>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        setInterval(() => {
+            if (activeAlarmNoteId) return;
+            const now = new Date().toISOString().slice(0, 16);
+            
+            for (let note of notes) {
+                if (note.reminder && note.reminder.slice(0, 16) === now) {
+                    activeAlarmNoteId = note.id;
+                    document.getElementById('alarmTitle').innerText = note.title;
+                    document.getElementById('alarmDesc').innerText = note.content;
+                    document.getElementById('alarm-overlay').style.display = 'flex';
+                    
+                    const sound = document.getElementById('alarmSound');
+                    sound.play().catch(e => console.log("Audio play blocked until user gesture"));
+                    break;
+                }
+            }
+        }, 10000);
+
+        function dismissAlarm() {
+            document.getElementById('alarm-overlay').style.display = 'none';
+            document.getElementById('alarmSound').pause();
+            
+            const note = notes.find(n => n.id === activeAlarmNoteId);
+            if (note) {
+                note.reminder = '';
+                saveNotesToStorage();
+                renderNotes();
+            }
+            activeAlarmNoteId = null;
+        }
+
+        function snoozeAlarm() {
+            const minutesToAdd = parseInt(document.getElementById('snoozeWindowSelect').value);
+            document.getElementById('alarm-overlay').style.display = 'none';
+            document.getElementById('alarmSound').pause();
+
+            const note = notes.find(n => n.id === activeAlarmNoteId);
+            if (note) {
+                const newTime = new Date(Date.now() + minutesToAdd * 60000);
+                note.reminder = newTime.toISOString().slice(0, 16);
+                saveNotesToStorage();
+                renderNotes();
+            }
+            activeAlarmNoteId = null;
+        }
+
+        renderNotes();
+    </script>
+</body>
+</html>
