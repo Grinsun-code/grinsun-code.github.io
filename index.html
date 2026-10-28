@@ -952,6 +952,524 @@
         async function triggerAutoBackup() {
             if (!backupHandle) return;
             try {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shaleadnotes</title>
+    <style>
+        :root {
+            --primary-color: #a78bfa;
+            --primary-hover: #c4b5fd;
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e5e7eb;
+            --border-color: #333333;
+            --muted-color: #9ca3af;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        header {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .settings-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .section-title {
+            width: 100%;
+            max-width: 600px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--muted-color);
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        #notes-container {
+            width: 100%;
+            max-width: 600px;
+            display: grid;
+            gap: 14px;
+        }
+
+        .note-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--primary-color);
+            padding: 16px;
+            border-radius: 14px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .note-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+            color: var(--text-color);
+        }
+
+        .note-card p {
+            margin: 0 0 12px 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--muted-color);
+            font-size: 0.95rem;
+        }
+
+        .note-card img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            max-height: 250px;
+            object-fit: contain;
+        }
+
+        .note-meta {
+            font-size: 0.75rem;
+            color: var(--muted-color);
+            margin-bottom: 10px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .note-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--muted-color);
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        .action-btn:hover {
+            color: var(--text-color);
+            background: rgba(255,255,255,0.05);
+        }
+        .delete-action:hover {
+            color: #ef4444;
+        }
+
+        .fab-container {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .fab {
+            width: 56px;
+            height: 56px;
+            background-color: var(--primary-color);
+            color: #121212;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(167, 139, 250, 0.4);
+            cursor: pointer;
+            border: none;
+        }
+        .fab:hover { background-color: var(--primary-hover); }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 1000;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            font-size: 1.3rem;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            background: #121212;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 12px;
+            border-radius: 10px;
+            font-family: inherit;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+        textarea { height: 130px; resize: vertical; }
+
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .file-input-label {
+            cursor: pointer;
+            color: var(--primary-color);
+            font-weight: 500;
+            font-size: 0.9rem;
+            background: rgba(167, 139, 250, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+        #image-input { display: none; }
+        #image-preview {
+            max-width: 100%;
+            max-height: 100px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: #121212;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-secondary {
+            background: #333;
+            color: var(--text-color);
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .settings-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Shaleadnotes</h1>
+        <button class="settings-btn" onclick="toggleSettings(true)">⚙️</button>
+    </header>
+
+    <div class="section-title">📝 GENERAL NOTES</div>
+
+    <div id="notes-container"></div>
+
+    <div class="fab-container">
+        <button class="fab" onclick="toggleModal(true)">+</button>
+    </div>
+
+    <!-- Note Editor Modal -->
+    <div class="modal-overlay" id="noteModal" onclick="handleOutsideClick(event)">
+        <div class="modal">
+            <h2 id="modal-title">New Note</h2>
+            <input type="text" id="noteTitleInput" placeholder="Note Title...">
+            <textarea id="noteText" placeholder="Write text or paste content..."></textarea>
+            
+            <img id="image-preview" alt="Preview">
+            
+            <div class="modal-actions">
+                <label class="file-input-label">
+                    📷 Attach Image
+                    <input type="file" id="image-input" accept="image/*" onchange="previewImage(event)">
+                </label>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-secondary" onclick="toggleModal(false)">Cancel</button>
+                    <button class="btn-primary" onclick="saveNote()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings & Backup Modal -->
+    <div class="modal-overlay" id="settingsModal" onclick="handleSettingsOutsideClick(event)">
+        <div class="modal">
+            <h2>Settings & Backups</h2>
+            <div class="settings-option">
+                <div>
+                    <strong>Auto-Backup Folder</strong>
+                    <div style="font-size: 0.8rem; color: var(--muted-color);">Sync notes to a device folder</div>
+                </div>
+                <button class="btn-primary" onclick="setupAutoBackupFolder()">Link Folder</button>
+            </div>
+            <div class="settings-option">
+                <div>
+                    <strong>Import Backup</strong>
+                    <div style="font-size: 0.8rem; color: var(--muted-color);">Restore notes from .json file</div>
+                </div>
+                <button class="btn-secondary" onclick="importNotes()">Import</button>
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn-secondary" onclick="toggleSettings(false)">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db;
+        let backupHandle = null;
+        let currentImageBase64 = null;
+        let editingNoteId = null;
+
+        const request = indexedDB.open("ShaleadnotesDB", 2);
+        request.onerror = (e) => console.error("DB error", e);
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            loadNotes();
+        };
+        request.onupgradeneeded = (e) => {
+            db = e.target.result;
+            if (!db.objectStoreNames.contains("notes")) {
+                db.createObjectStore("notes", { keyPath: "id", autoIncrement: true });
+            }
+        };
+
+        function toggleModal(open, note = null) {
+            const modal = document.getElementById('noteModal');
+            if (open) {
+                modal.classList.add('active');
+                if (note) {
+                    document.getElementById('modal-title').innerText = "Edit Note";
+                    document.getElementById('noteTitleInput').value = note.title || '';
+                    document.getElementById('noteText').value = note.text || '';
+                    editingNoteId = note.id;
+                    if (note.image) {
+                        currentImageBase64 = note.image;
+                        const preview = document.getElementById('image-preview');
+                        preview.src = note.image;
+                        preview.style.display = 'block';
+                    }
+                } else {
+                    document.getElementById('modal-title').innerText = "New Note";
+                    document.getElementById('noteTitleInput').value = '';
+                    document.getElementById('noteText').value = '';
+                    editingNoteId = null;
+                    clearImagePreview();
+                }
+                document.getElementById('noteTitleInput').focus();
+            } else {
+                modal.classList.remove('active');
+                clearImagePreview();
+            }
+        }
+
+        function handleOutsideClick(event) {
+            if (event.target.id === 'noteModal') toggleModal(false);
+        }
+
+        function toggleSettings(open) {
+            const modal = document.getElementById('settingsModal');
+            if (open) modal.classList.add('active');
+            else modal.classList.remove('active');
+        }
+
+        function handleSettingsOutsideClick(event) {
+            if (event.target.id === 'settingsModal') toggleSettings(false);
+        }
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImageBase64 = e.target.result;
+                    const preview = document.getElementById('image-preview');
+                    preview.src = currentImageBase64;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearImagePreview() {
+            currentImageBase64 = null;
+            const preview = document.getElementById('image-preview');
+            preview.src = '';
+            preview.style.display = 'none';
+            document.getElementById('image-input').value = '';
+        }
+
+        function saveNote() {
+            const title = document.getElementById('noteTitleInput').value.trim();
+            const text = document.getElementById('noteText').value.trim();
+            if (!title && !text && !currentImageBase64) return;
+
+            const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+            const chars = text.length;
+
+            const note = {
+                title: title || "Untitled Note",
+                text: text,
+                image: currentImageBase64,
+                words: words,
+                chars: chars,
+                date: new Date().toLocaleString()
+            };
+
+            const transaction = db.transaction(["notes"], "readwrite");
+            const store = transaction.objectStore("notes");
+
+            let req;
+            if (editingNoteId) {
+                note.id = editingNoteId;
+                req = store.put(note);
+            } else {
+                req = store.add(note);
+            }
+
+            req.onsuccess = () => {
+                toggleModal(false);
+                loadNotes();
+                triggerAutoBackup();
+            };
+        }
+
+        function loadNotes() {
+            const container = document.getElementById('notes-container');
+            container.innerHTML = '';
+
+            const transaction = db.transaction(["notes"], "readonly");
+            const store = transaction.objectStore("notes");
+            const request = store.openCursor(null, 'prev');
+
+            request.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const note = cursor.value;
+                    const card = document.createElement('div');
+                    card.className = 'note-card';
+
+                    let contentHtml = `<div class="note-title">📝 ${escapeHtml(note.title)}</div>`;
+                    if (note.text) contentHtml += `<p>${escapeHtml(note.text)}</p>`;
+                    if (note.image) contentHtml += `<img src="${note.image}" alt="Attachment">`;
+
+                    card.innerHTML = `
+                        ${contentHtml}
+                        <div class="note-meta">
+                            <span>Words: ${note.words || 0} | Chars: ${note.chars || 0}</span>
+                            <span>${note.date}</span>
+                        </div>
+                        <div class="note-footer">
+                            <button class="action-btn" onclick='editNote(${JSON.stringify(note).replace(/'/g, "&#39;")})'>✏️ Edit</button>
+                            <button class="action-btn delete-action" onclick="deleteNote(${note.id})">🗑️ Delete</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                    cursor.continue();
+                }
+            };
+        }
+
+        function editNote(note) {
+            toggleModal(true, note);
+        }
+
+        function deleteNote(id) {
+            if (!confirm("Delete this note?")) return;
+            const transaction = db.transaction(["notes"], "readwrite");
+            const store = transaction.objectStore("notes");
+            const request = store.delete(id);
+
+            request.onsuccess = () => {
+                loadNotes();
+                triggerAutoBackup();
+            };
+        }
+
+        async function setupAutoBackupFolder() {
+            try {
+                if (!window.showDirectoryPicker) {
+                    alert("Folder Access API is not supported in this browser.");
+                    return;
+                }
+                backupHandle = await window.showDirectoryPicker();
+                alert("Backup folder successfully linked!");
+                triggerAutoBackup();
+            } catch (err) {
+                console.log("Cancelled folder selection", err);
+            }
+        }
+
+        async function triggerAutoBackup() {
+            if (!backupHandle) return;
+            try {
                 const transaction = db.transaction(["notes"], "readonly");
                 const store = transaction.objectStore("notes");
                 const getAllRequest = store.getAll();
@@ -999,13 +1517,6 @@
             input.click();
         }
 
-        function filterNotes() {
-            const query = prompt("Search notes by keyword:");
-            if (!query) return;
-            // Basic filtering hook
-            alert("Search functionality active for: " + query);
-        }
-
         function escapeHtml(text) {
             if (!text) return '';
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
@@ -1015,10 +1526,7 @@
 </body>
 </html>
 
-t(note);
-                        });
-
-                        transaction.oncomplete = () => {
+                 transaction.oncomplete = () => {
                             loadNotes();
                             alert("Notes successfully restored!");
                         };
