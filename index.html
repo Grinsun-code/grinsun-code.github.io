@@ -1375,6 +1375,531 @@
             const chars = text.length;
 
             const note = {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shaleadnotes</title>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding-bottom: 90px; /* Space for FAB */
+        }
+
+        header {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 0 4px;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        /* Thumb-friendly bottom settings bar for backup/import */
+        .bottom-nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 90;
+        }
+
+        .bottom-nav-bar button {
+            background: none;
+            color: var(--text-color);
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .bottom-nav-bar button:hover {
+            color: var(--primary-color);
+            background: none;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .secondary-btn {
+            background-color: #64748b;
+        }
+        .secondary-btn:hover {
+            background-color: #475569;
+        }
+
+        /* Notes Grid */
+        #notes-container {
+            width: 100%;
+            max-width: 600px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .note-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .note-card p {
+            margin: 0 0 10px 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 0.95rem;
+        }
+
+        .note-card img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 8px;
+            max-height: 220px;
+            object-fit: contain;
+        }
+
+        .note-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .delete-btn {
+            background: none;
+            color: #ef4444;
+            border: none;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .delete-btn:hover {
+            color: #dc2626;
+            background: rgba(239, 68, 68, 0.05);
+            border-radius: 4px;
+        }
+
+        /* Floating Action Button (FAB) - Placed safely in the thumb zone */
+        .fab {
+            position: fixed;
+            bottom: 70px;
+            right: 20px;
+            width: 58px;
+            height: 58px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s;
+            z-index: 100;
+        }
+
+        .fab:hover {
+            transform: scale(1.05);
+            background-color: var(--primary-hover);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end; /* Slides up naturally from thumb reach on mobile */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            z-index: 1000;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.1, 1, 0.1, 1);
+            box-sizing: border-box;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 130px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: none;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-input-label {
+            cursor: pointer;
+            color: var(--primary-color);
+            font-weight: 500;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            background: #eef2ff;
+            border-radius: 8px;
+        }
+        
+        .file-input-label:hover {
+            background: #e0e7ff;
+        }
+
+        #image-input {
+            display: none;
+        }
+
+        #image-preview {
+            max-width: 100%;
+            max-height: 90px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Shaleadnotes</h1>
+    </header>
+
+    <div id="notes-container">
+        <!-- Notes will load dynamically here -->
+    </div>
+
+    {/* Bottom Navigation Bar for Backup & Import (Thumb-Friendly Reach) */}
+    <div class="bottom-nav-bar">
+        <button onclick="setupAutoBackupFolder()">
+            <span>🔗</span>
+            <span>Link Folder</span>
+        </button>
+        <button onclick="importNotes()">
+            <span>📂</span>
+            <span>Import</span>
+        </button>
+    </div>
+
+    {/* Floating Action Button (FAB) */}
+    <button class="fab" onclick="toggleModal(true)">+</button>
+
+    {/* Modal Popup for New Note (Bottom Sheet style for perfect thumb ergonomics) */}
+    <div class="modal-overlay" id="noteModal" onclick="handleOutsideClick(event)">
+        <div class="modal">
+            <h2>New Note</h2>
+            <textarea id="noteText" placeholder="Write thoughts or attach images..."></textarea>
+            
+            <img id="image-preview" alt="Preview">
+            
+            <div class="modal-actions">
+                <label class="file-input-label">
+                    📷 Image
+                    <input type="file" id="image-input" accept="image/*" onchange="previewImage(event)">
+                </label>
+                <div style="display: flex; gap: 8px;">
+                    <button class="secondary-btn" onclick="toggleModal(false)" style="padding: 10px 12px;">Cancel</button>
+                    <button onclick="saveNote()" style="padding: 10px 16px;">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db;
+        let backupHandle = null;
+        let currentImageBase64 = null;
+
+        const request = indexedDB.open("ShaleadnotesDB", 1);
+
+        request.onerror = (event) => {
+            console.error("Database error: ", event.target.errorCode);
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            loadNotes();
+        };
+
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains("notes")) {
+                db.createObjectStore("notes", { keyPath: "id", autoIncrement: true });
+            }
+        };
+
+        function toggleModal(open) {
+            const modal = document.getElementById('noteModal');
+            if (open) {
+                modal.classList.add('active');
+                document.getElementById('noteText').focus();
+            } else {
+                modal.classList.remove('active');
+                document.getElementById('noteText').value = '';
+                clearImagePreview();
+            }
+        }
+
+        function handleOutsideClick(event) {
+            if (event.target.id === 'noteModal') {
+                toggleModal(false);
+            }
+        }
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImageBase64 = e.target.result;
+                    const preview = document.getElementById('image-preview');
+                    preview.src = currentImageBase64;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearImagePreview() {
+            currentImageBase64 = null;
+            const preview = document.getElementById('image-preview');
+            preview.src = '';
+            preview.style.display = 'none';
+            document.getElementById('image-input').value = '';
+        }
+
+        function saveNote() {
+            const text = document.getElementById('noteText').value.trim();
+            if (!text && !currentImageBase64) return;
+
+            const note = {
+                text: text,
+                image: currentImageBase64,
+                date: new Date().toLocaleString()
+            };
+
+            const transaction = db.transaction(["notes"], "readwrite");
+            const store = transaction.objectStore("notes");
+            const request = store.add(note);
+
+            request.onsuccess = () => {
+                toggleModal(false);
+                loadNotes();
+                triggerAutoBackup();
+            };
+        }
+
+        function loadNotes() {
+            const container = document.getElementById('notes-container');
+            container.innerHTML = '';
+
+            const transaction = db.transaction(["notes"], "readonly");
+            const store = transaction.objectStore("notes");
+            const request = store.openCursor(null, 'prev');
+
+            request.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    const note = cursor.value;
+                    const card = document.createElement('div');
+                    card.className = 'note-card';
+
+                    let contentHtml = `<p>${escapeHtml(note.text)}</p>`;
+                    if (note.image) {
+                        contentHtml += `<img src="${note.image}" alt="Note attachment">`;
+                    }
+
+                    card.innerHTML = `
+                        ${contentHtml}
+                        <div class="note-footer">
+                            <span>${note.date}</span>
+                            <button class="delete-btn" onclick="deleteNote(${cursor.value.id})">Delete</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                    cursor.continue();
+                }
+            };
+        }
+
+        function deleteNote(id) {
+            const transaction = db.transaction(["notes"], "readwrite");
+            const store = transaction.objectStore("notes");
+            const request = store.delete(id);
+
+            request.onsuccess = () => {
+                loadNotes();
+                triggerAutoBackup();
+            };
+        }
+
+        async function setupAutoBackupFolder() {
+            try {
+                if (!window.showDirectoryPicker) {
+                    alert("Folder Access API is not fully supported in this browser.");
+                    return;
+                }
+                backupHandle = await window.showDirectoryPicker();
+                alert("Backup folder successfully linked!");
+                triggerAutoBackup();
+            } catch (err) {
+                console.log("Cancelled folder selection", err);
+            }
+        }
+
+        async function triggerAutoBackup() {
+            if (!backupHandle) return;
+            try {
+                const transaction = db.transaction(["notes"], "readonly");
+                const store = transaction.objectStore("notes");
+                const getAllRequest = store.getAll();
+
+                getAllRequest.onsuccess = async () => {
+                    const notes = getAllRequest.result;
+                    const fileHandle = await backupHandle.getFileHandle("shaleadnotes_backup.json", { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(JSON.stringify(notes, null, 2));
+                    await writable.close();
+                };
+            } catch (err) {
+                console.error("Auto backup failed:", err);
+            }
+        }
+
+        function importNotes() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = event => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = e => {
+                    try {
+                        const notes = JSON.parse(e.target.result);
+                        const transaction = db.transaction(["notes"], "readwrite");
+                        const store = transaction.objectStore("notes");
+
+                        notes.forEach(note => {
+                            store.put(note);
+                        });
+
+                        transaction.oncomplete = () => {
+                            loadNotes();
+                            alert("Notes successfully restored!");
+                        };
+                    } catch (err) {
+                        alert("Invalid backup file format.");
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+    </script>
+</body>
+</html>
+
                 title: title || "Untitled Note",
                 text: text,
                 image: currentImageBase64,
@@ -1460,68 +1985,7 @@
                     return;
                 }
                 backupHandle = await window.showDirectoryPicker();
-                alert("Backup folder successfully linked!");
-                triggerAutoBackup();
-            } catch (err) {
-                console.log("Cancelled folder selection", err);
-            }
-        }
 
-        async function triggerAutoBackup() {
-            if (!backupHandle) return;
-            try {
-                const transaction = db.transaction(["notes"], "readonly");
-                const store = transaction.objectStore("notes");
-                const getAllRequest = store.getAll();
-
-                getAllRequest.onsuccess = async () => {
-                    const notes = getAllRequest.result;
-                    const fileHandle = await backupHandle.getFileHandle("shaleadnotes_backup.json", { create: true });
-                    const writable = await fileHandle.createWritable();
-                    await writable.write(JSON.stringify(notes, null, 2));
-                    await writable.close();
-                };
-            } catch (err) {
-                console.error("Auto backup failed:", err);
-            }
-        }
-
-        function importNotes() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = event => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = e => {
-                    try {
-                        const notes = JSON.parse(e.target.result);
-                        const transaction = db.transaction(["notes"], "readwrite");
-                        const store = transaction.objectStore("notes");
-
-                        notes.forEach(note => { store.put(note); });
-
-                        transaction.oncomplete = () => {
-                            loadNotes();
-                            alert("Notes successfully restored!");
-                            toggleSettings(false);
-                        };
-                    } catch (err) {
-                        alert("Invalid backup file format.");
-                    }
-                };
-                reader.readAsText(file);
-            };
-            input.click();
-        }
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
     </script>
 </body>
 </html>
