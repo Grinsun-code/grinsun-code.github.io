@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.grinsun_code.twa",
+        "sha256_cert_fingerprints": ["0A:AF:28:9B:94:94:7E:BC:91:38:05:FD:E2:4F:09:2E:95:F5:C0:FC:85:AA:7C:F6:29:37:E8:82:A6:47:30:2C"]
+      }
+    }]
