@@ -21,6 +21,8 @@
             color: var(--text-color);
             margin: 0;
             padding: 16px;
+            /* Safe top padding prevents the Android status bar from cutting off the title */
+            padding-top: max(24px, env(safe-area-inset-top));
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -486,7 +488,7 @@
                 <button class="btn-secondary" onclick="importNotes()">Import</button>
             </div>
 
-            <!-- Manual Export Option (Safely Untouched) -->
+            <!-- Manual Export Option -->
             <div class="settings-option">
                 <div>
                     <strong>Export Database (Standalone Backup)</strong>
@@ -512,7 +514,6 @@
             const savedHand = localStorage.getItem("shalead_hand") || "right";
             setHandedness(savedHand, false);
             
-            // Request browser persistent storage to protect database from accidental eviction or wipes
             if (navigator.storage && navigator.storage.persist) {
                 navigator.storage.persist().then(persistent => {
                     if (persistent) {
